@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Headcanon Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Character Headcanon Generator</h1>
+            <p class="subtitle">Create unique character backstories & personalities</p>
+        </header>
+        
+        <main>
+            <div class="card">
+                <div class="input-section">
+                    <input type="text" id="characterName" placeholder="Enter character name...">
+                    <div class="theme-selector">
+                        <select id="themeSelector">
+                            <option value="standard">Standard</option>
+                            <option value="fantasy">Fantasy</option>
+                            <option value="scifi">Sci-Fi</option>
+                            <option value="mystery">Mystery</option>
+                            <option value="romance">Romance</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="content-section">
+                    <div class="story-display">
+                        <div id="characterAttributes" class="character-card hidden">
+                            <div class="avatar-container">
+                                <div class="avatar" id="characterAvatar"></div>
+                            </div>
+                            <!-- 角色属性将在这里显示 -->
+                        </div>
+                        
+                        <div class="headcanon-container">
+                            <p id="headcanon">Enter a character name and click the button below to start generating your character's headcanon!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-tracker">
+                        <div class="progress-dots">
+                            <div class="progress-dot" id="dot1"></div>
+                            <div class="progress-line"></div>
+                            <div class="progress-dot" id="dot2"></div>
+                            <div class="progress-line"></div>
+                            <div class="progress-dot" id="dot3"></div>
+                            <div class="progress-line"></div>
+                            <div class="progress-dot" id="dot4"></div>
+                        </div>
+                        <div class="progress-text">Story Progress</div>
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button id="generateBtn" class="btn primary"><i class="fas fa-magic"></i> Generate</button>
+                    <button id="saveStoryBtn" class="btn secondary hidden"><i class="fas fa-save"></i> Save Story</button>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <h3>How it works</h3>
+                <ol>
+                    <li>Enter your character's name</li>
+                    <li>Select a story theme</li>
+                    <li>Click "Generate" to start the story</li>
+                    <li>Keep clicking to continue the narrative</li>
+                    <li>Save your completed story</li>
+                </ol>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Created for character development & creative writing</p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
