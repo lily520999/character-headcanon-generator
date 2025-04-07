@@ -329,7 +329,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 avatarElement.classList.add('loading');
                 
                 // 构建基于年龄和性别的本地图像路径
-                const avatarPath = `images/avatars/${age}/${gender}/avatar${nameHash % 3 + 1}.jpg`;
+                const maxAvatarCount = gender === 'male' ? 11 : 5; // 男性有11个头像，女性有5个
+                const avatarNumber = (nameHash % maxAvatarCount) + 1;
+                const avatarPath = `images/avatars/${age}/${gender}/avatar${avatarNumber}.jpeg`;
                 
                 // 显示头像
                 avatarElement.style.backgroundImage = `url('${avatarPath}')`;
