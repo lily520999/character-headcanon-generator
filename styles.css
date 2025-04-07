@@ -558,21 +558,118 @@ footer {
     .story-display {
         flex-direction: column;
     }
-    
     .card {
         padding: 20px;
     }
-    
     h1 {
         font-size: 2rem;
     }
-    
     .actions {
         flex-direction: column;
     }
-    
     .btn {
         width: 100%;
+        margin-bottom: 10px;
+    }
+    .input-section {
+        flex-direction: column;
+    }
+    .theme-selector {
+        flex-basis: auto;
+        width: 100%;
+    }
+    .avatar-container {
+        margin: 0 auto 20px;
+    }
+    .attributes-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 中等屏幕设备优化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .card {
+        padding: 25px;
+    }
+    h1 {
+        font-size: 2.2rem;
+    }
+    .btn {
+        padding: 10px 20px;
+    }
+    .attributes-list {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) {
+    .btn:hover, 
+    .btn.primary:hover, 
+    .btn.secondary:hover,
+    .sound-toggle:hover,
+    .theme-toggle:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    
+    /* 为触摸设备增加点击目标尺寸 */
+    .btn, .sound-toggle, .theme-toggle {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    input, select {
+        min-height: 44px;
+        font-size: 16px; /* 防止iOS缩放 */
+    }
+}
+
+/* 高DPI显示屏优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .card::before {
+        opacity: 0.8;
+    }
+    
+    h1 {
+        text-shadow: 0 1px 5px rgba(157, 80, 187, 0.2);
+    }
+}
+
+/* 确保顶部和底部在小屏幕上有足够的间距 */
+@media (max-height: 700px) {
+    body {
+        padding: 15px 10px;
+    }
+    
+    .app-container {
+        gap: 15px;
+    }
+    
+    .instructions {
+        padding: 15px;
+    }
+}
+
+/* 优化打印样式 */
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #eee;
+    }
+    
+    .btn, .theme-toggle, .sound-toggle {
+        display: none;
+    }
+    
+    .instructions {
+        border: 1px solid #eee;
+        background: none;
     }
 }
 
