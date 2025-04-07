@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Preview Image</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            font-family: 'Poppins', sans-serif;
+        }
+        .preview-container {
+            width: 1200px;
+            height: 630px;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .preview-title {
+            font-size: 72px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+            z-index: 2;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .preview-subtitle {
+            font-size: 36px;
+            font-weight: 300;
+            margin-bottom: 40px;
+            text-align: center;
+            max-width: 80%;
+            z-index: 2;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+        .features {
+            display: flex;
+            gap: 30px;
+            z-index: 2;
+        }
+        .feature {
+            background-color: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .decorative-elements {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.6;
+        }
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .circle-1 {
+            width: 300px;
+            height: 300px;
+            top: -100px;
+            right: -50px;
+        }
+        .circle-2 {
+            width: 200px;
+            height: 200px;
+            bottom: -50px;
+            left: 100px;
+        }
+        .circle-3 {
+            width: 150px;
+            height: 150px;
+            top: 80px;
+            left: -50px;
+        }
+        .website-url {
+            position: absolute;
+            bottom: 30px;
+            font-size: 24px;
+            opacity: 0.8;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="decorative-elements">
+            <div class="circle circle-1"></div>
+            <div class="circle circle-2"></div>
+            <div class="circle circle-3"></div>
+        </div>
+        <h1 class="preview-title">Character Headcanon Generator</h1>
+        <p class="preview-subtitle">Create unique character profiles with personalized backstories and avatars</p>
+        <div class="features">
+            <div class="feature">Generate Character Profiles</div>
+            <div class="feature">Create Backstories</div>
+            <div class="feature">Custom Avatars</div>
+        </div>
+        <div class="website-url">charactergenerator.site</div>
+    </div>
+</body>
+</html> 
