@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Character Headcanon Generator</title>
     
+    <!-- 性能优化：预连接提示 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
     <!-- SEO Meta Tags -->
     <meta name="description" content="Create unique character profiles and backstories with our free Character Headcanon Generator. Generate detailed traits, personalities, and matching avatars for writers, gamers, and creative projects.">
     <meta name="keywords" content="character generator, headcanon, story creator, avatar generator, creative writing, character development, RPG characters">
@@ -24,16 +29,21 @@
     <meta name="twitter:description" content="Create unique character profiles and backstories with personalized avatars.">
     <meta name="twitter:image" content="https://charactergenerator.site/images/preview.png">
     
+    <!-- 性能优化：CSS加载 -->
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Google tag (gtag.js) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" media="print" onload="this.media='all'">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    </noscript>
+    
+    <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-786KLVG3DT"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'G-786KLVG3DT');
     </script>
 </head>
@@ -110,6 +120,7 @@
         </footer>
     </div>
     
-    <script src="script.js"></script>
+    <!-- 性能优化：延迟加载JavaScript -->
+    <script src="script.js" defer></script>
 </body>
 </html> 
