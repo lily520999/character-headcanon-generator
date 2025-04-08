@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // 缓存DOM元素，减少查询
     const characterNameInput = document.getElementById('characterName');
     const headcanonElement = document.getElementById('headcanon');
     const headcanonContainer = document.querySelector('.headcanon-container');
@@ -6,6 +7,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const saveStoryBtn = document.getElementById('saveStoryBtn');
     const themeSelector = document.getElementById('themeSelector');
     const attributesContainer = document.getElementById('characterAttributes');
+    
+    // 多语言支持
+    let currentLanguage = 'zh'; // 默认语言为中文
+    const translations = {}; // 存储语言翻译
+    const supportedLanguages = ['zh', 'en']; // 仅支持中英文
     
     // 故事进度点
     const progressDots = [
@@ -26,10 +32,186 @@ document.addEventListener('DOMContentLoaded', function() {
     let characterAttributes = {};
     let currentTheme = 'standard';
 
+    // 图像缓存系统
+    const imageCache = {};
+
+    // 防抖函数：防止用户快速多次点击
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this;
+            const args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
+    }
+
     // 预加载动画效果
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         characterNameInput.focus();
-    }, 1000);
+    });
+    
+    // 加载语言文件
+    async function loadLanguage(lang) {
+        if (!supportedLanguages.includes(lang)) {
+            console.warn(`不支持的语言: ${lang}, 使用默认语言`);
+            lang = 'zh';
+        }
+        
+        if (translations[lang]) return true; // 已加载
+        
+        try {
+            const response = await fetch(`langs/${lang}.json`);
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+            translations[lang] = await response.json();
+            return true;
+        } catch (error) {
+            console.error(`无法加载${lang}语言文件:`, error);
+            // 如果加载失败且不是默认语言，尝试使用中文作为备用
+            if (lang !== 'zh') {
+                return await loadLanguage('zh');
+            }
+            return false;
+        }
+    }
+    
+    // 翻译函数，支持参数替换
+    function translate(key, params = {}) {
+        if (!translations[currentLanguage]) {
+            return key; // 语言文件尚未加载
+        }
+        
+        let text = translations[currentLanguage][key] || key;
+        
+        // 替换参数，例如 {name} 替换为实际名称
+        for (const [param, value] of Object.entries(params)) {
+            text = text.replace(new RegExp(`{${param}}`, 'g'), value);
+        }
+        
+        return text;
+    }
+    
+    // 更新页面上的所有文本
+    function updatePageLanguage() {
+        // 更新普通文本元素
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            const params = {};
+            
+            // 检查是否需要参数替换
+            if (key === 'attributesTitle' && currentCharacter) {
+                params.name = currentCharacter;
+            }
+            
+            element.textContent = translate(key, params);
+        });
+        
+        // 更新输入框占位符
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+            const key = element.getAttribute('data-i18n-placeholder');
+            element.placeholder = translate(key);
+        });
+        
+        // 更新下拉菜单选项
+        const themeOptions = themeSelector.querySelectorAll('option');
+        themeOptions.forEach(option => {
+            const key = option.getAttribute('data-i18n');
+            if (key) {
+                option.textContent = translate(key);
+            }
+        });
+        
+        // 更新语言选择器状态
+        document.querySelectorAll('.language-option').forEach(option => {
+            const optionLang = option.getAttribute('data-lang');
+            if (supportedLanguages.includes(optionLang)) {
+                if (optionLang === currentLanguage) {
+                    option.classList.add('current');
+                } else {
+                    option.classList.remove('current');
+                }
+                option.style.display = 'inline-block'; // 显示支持的语言
+            } else {
+                option.style.display = 'none'; // 隐藏不支持的语言
+            }
+        });
+        
+        // 如果存在角色，更新属性显示
+        if (currentCharacter && characterAttributes) {
+            displayCharacterAttributes();
+        }
+        
+        // 如果有现有故事，更新故事内容
+        if (currentStory.length > 0) {
+            displayCurrentStory();
+        }
+    }
+    
+    // 切换语言
+    async function switchLanguage(lang) {
+        if (!supportedLanguages.includes(lang)) return;
+        
+        // 显示加载中指示器
+        const indicator = document.createElement('div');
+        indicator.className = 'language-loading';
+        indicator.textContent = '加载中...';
+        document.body.appendChild(indicator);
+        
+        const success = await loadLanguage(lang);
+        
+        if (success) {
+            currentLanguage = lang;
+            document.documentElement.setAttribute('lang', lang);
+            localStorage.setItem('preferredLanguage', lang);
+            updatePageLanguage();
+        }
+        
+        // 移除加载指示器
+        document.body.removeChild(indicator);
+    }
+    
+    // 初始化语言设置
+    async function initializeLanguage() {
+        // 检测用户首选语言
+        const savedLanguage = localStorage.getItem('preferredLanguage');
+        const browserLang = navigator.language.split('-')[0];
+        let initialLang = savedLanguage || browserLang || 'zh';
+        
+        // 确保语言在支持列表中
+        if (!supportedLanguages.includes(initialLang)) {
+            initialLang = 'zh'; // 默认中文
+        }
+        
+        // 加载默认语言和用户语言
+        await loadLanguage('zh'); // 中文作为备用
+        if (initialLang !== 'zh') {
+            await loadLanguage(initialLang);
+        }
+        
+        currentLanguage = initialLang;
+        document.documentElement.setAttribute('lang', initialLang);
+        
+        // 添加语言选择器事件监听
+        document.querySelectorAll('.language-option').forEach(option => {
+            const lang = option.getAttribute('data-lang');
+            if (supportedLanguages.includes(lang)) {
+                option.addEventListener('click', () => {
+                    if (lang !== currentLanguage) {
+                        switchLanguage(lang);
+                    }
+                });
+                
+                // 标记当前语言
+                if (lang === currentLanguage) {
+                    option.classList.add('current');
+                }
+            } else {
+                option.style.display = 'none'; // 隐藏不支持的语言
+            }
+        });
+        
+        updatePageLanguage();
+    }
 
     // 角色设定列表（英文版）
     const headcanons = [
@@ -98,15 +280,36 @@ document.addEventListener('DOMContentLoaded', function() {
         "That night, NAME went to sleep knowing that tomorrow would bring new possibilities."
     ];
 
+    // 显示当前故事（用于语言切换后）
+    function displayCurrentStory() {
+        if (!headcanonElement || currentStory.length === 0) return;
+        
+        // 优化：创建文档片段减少DOM操作次数
+        const fragment = document.createDocumentFragment();
+        
+        currentStory.forEach(storyItem => {
+            const p = document.createElement('p');
+            p.textContent = storyItem;
+            fragment.appendChild(p);
+        });
+        
+        // 一次性更新DOM
+        headcanonElement.innerHTML = '';
+        headcanonElement.appendChild(fragment);
+    }
+
     // 按键事件监听
     characterNameInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-            generateHeadcanon();
+            debouncedGenerateHeadcanon();
         }
     });
 
-    // 点击按钮生成设定
-    generateBtn.addEventListener('click', generateHeadcanon);
+    // 使用防抖包装生成函数
+    const debouncedGenerateHeadcanon = debounce(generateHeadcanon, 300);
+
+    // 点击按钮生成设定 - 使用防抖函数避免多次快速点击
+    generateBtn.addEventListener('click', debouncedGenerateHeadcanon);
     
     // 初始化进度条
     updateProgressIndicators(0);
@@ -130,20 +333,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 添加保存故事功能
     if (saveStoryBtn) {
-        console.log("保存按钮存在，添加点击事件监听器");
         saveStoryBtn.addEventListener('click', function() {
-            console.log("保存按钮被点击");
             saveStory();
         });
-    } else {
-        console.log("保存按钮不存在!");
     }
 
     function generateHeadcanon() {
         const name = characterNameInput.value.trim();
         
         if (name === '') {
-            headcanonElement.textContent = 'Please enter a character name!';
+            headcanonElement.textContent = translate('pleaseEnterName');
             headcanonContainer.classList.add('shake');
             setTimeout(() => {
                 headcanonContainer.classList.remove('shake');
@@ -156,6 +355,9 @@ document.addEventListener('DOMContentLoaded', function() {
             saveStoryBtn.classList.add('hidden');
         }
         storyCompleted = false;
+        
+        // 优化：创建文档片段减少DOM操作次数
+        const fragment = document.createDocumentFragment();
         
         // 当角色名称改变时，重置故事
         if (currentCharacter !== name) {
@@ -180,6 +382,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // 显示角色属性卡片
             displayCharacterAttributes();
             
+            // 生成角色头像 - 使用requestAnimationFrame延迟到下一帧
+            requestAnimationFrame(() => {
+                generateCharacterAvatar(name);
+            });
+            
             // 更新进度条
             updateProgressIndicators(currentStory.length);
         } 
@@ -199,109 +406,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 const endingIndex = Math.floor(Math.random() * storyEndings.length);
                 const endingText = storyEndings[endingIndex].replace(/NAME/g, name);
                 currentStory.push(endingText);
-                
-                // 标记故事已完成
                 storyCompleted = true;
                 
-                // 显示保存故事按钮
+                // 更新进度条
+                updateProgressIndicators(currentStory.length);
+                
+                // 显示保存按钮
                 if (saveStoryBtn) {
                     saveStoryBtn.classList.remove('hidden');
-                    console.log("故事完成，保存按钮已显示");
-                } else {
-                    // 如果按钮不存在，尝试重新获取
-                    const saveBtn = document.getElementById('saveStoryBtn');
-                    if (saveBtn) {
-                        saveBtn.classList.remove('hidden');
-                        console.log("通过重新获取显示保存按钮");
-                    } else {
-                        console.log("无法找到保存按钮");
-                    }
                 }
-                
-                // 更新进度条
-                updateProgressIndicators(currentStory.length);
-            } 
-            else {
-                // 故事已完成，重新开始
-                currentStory = [];
-                
-                // 生成角色属性
-                characterAttributes = generateCharacterAttributes(name);
-                
-                // 随机选择一个设定作为角色特征
-                const randomIndex = Math.floor(Math.random() * headcanons.length);
-                const selectedHeadcanon = headcanons[randomIndex];
-                const personalizedHeadcanon = selectedHeadcanon.replace("This character", name);
-                
-                // 开始新故事
-                const beginningIndex = Math.floor(Math.random() * storyBeginnings.length);
-                const beginningText = storyBeginnings[beginningIndex].replace(/NAME/g, name);
-                
-                currentStory.push(personalizedHeadcanon);
-                currentStory.push(beginningText);
-                
-                // 显示角色属性卡片
-                displayCharacterAttributes();
-                
-                // 更新进度条
-                updateProgressIndicators(currentStory.length);
             }
         }
         
-        // 应用动画效果
-        headcanonContainer.classList.add('headcanon-highlight');
-        setTimeout(() => {
-            headcanonContainer.classList.remove('headcanon-highlight');
-        }, 1000);
+        // 高效DOM更新：使用文档片段一次性更新所有内容
+        currentStory.forEach(storyItem => {
+            const p = document.createElement('p');
+            p.textContent = storyItem;
+            fragment.appendChild(p);
+        });
         
-        // 显示故事
-        displayStory();
-
-        // 按钮反馈效果
-        generateBtn.classList.add('btn-clicked');
-        setTimeout(() => {
-            generateBtn.classList.remove('btn-clicked');
-        }, 200);
-        
-        // 更新按钮文字
-        updateButtonText();
-    }
-    
-    function displayStory() {
-        // 将故事显示在页面上
-        headcanonElement.innerHTML = currentStory.join('<br><br>');
-        
-        // 滚动到底部
-        headcanonContainer.scrollTop = headcanonContainer.scrollHeight;
-    }
-    
-    function updateButtonText() {
-        // 根据故事进度更新按钮文字
-        if (currentStory.length === 0 || currentStory.length === 4) {
-            generateBtn.innerHTML = '<i class="fas fa-magic"></i> Create New Headcanon';
-        } else if (currentStory.length === 1) {
-            generateBtn.innerHTML = '<i class="fas fa-book-open"></i> Begin Headcanon';
-        } else if (currentStory.length === 2) {
-            generateBtn.innerHTML = '<i class="fas fa-book-reader"></i> Continue Headcanon';
-        } else if (currentStory.length === 3) {
-            generateBtn.innerHTML = '<i class="fas fa-book"></i> Finish Headcanon';
-        }
-    }
-    
-    function updateProgressIndicators(step) {
-        // 重置所有点和线
-        progressDots.forEach(dot => dot.classList.remove('active'));
-        Array.from(progressLines).forEach(line => line.classList.remove('active'));
-        
-        // 激活当前进度
-        for (let i = 0; i < step; i++) {
-            progressDots[i].classList.add('active');
-            
-            // 为点之间的线添加active类
-            if (i < step - 1) {
-                progressLines[i].classList.add('active');
-            }
-        }
+        // 一次性更新DOM
+        headcanonElement.innerHTML = '';
+        headcanonElement.appendChild(fragment);
     }
     
     // 生成角色头像
@@ -321,7 +447,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // 获取角色年龄（从characterAttributes中）
         const age = characterAttributes ? characterAttributes.age : 'adult';
         
-        setTimeout(() => {
+        // 为了性能，只使用一个requestAnimationFrame
+        requestAnimationFrame(() => {
             const avatarElement = document.getElementById('characterAvatar');
             if (avatarElement) {
                 // 清空之前的内容
@@ -333,16 +460,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const avatarNumber = (nameHash % maxAvatarCount) + 1;
                 const avatarPath = `images/avatars/${age}/${gender}/avatar${avatarNumber}.jpeg`;
                 
-                // 显示头像
-                avatarElement.style.backgroundImage = `url('${avatarPath}')`;
-                
-                // 如果本地图像加载失败，使用基于名称的网络头像作为备用
-                const img = new Image();
-                img.onload = function() {
+                // 使用缓存系统加载图像
+                loadAndCacheImage(avatarPath, avatarElement, () => {
+                    // 成功加载本地图像
+                    avatarElement.style.backgroundImage = `url('${avatarPath}')`;
                     avatarElement.classList.remove('loading');
                     avatarElement.classList.add('loaded');
-                };
-                img.onerror = function() {
+                }, () => {
+                    // 本地图像加载失败，使用备用在线头像
                     console.log("本地头像加载失败，使用备用网络头像");
                     
                     // 备用：使用根据名称生成的在线头像
@@ -350,453 +475,200 @@ document.addEventListener('DOMContentLoaded', function() {
                     const genderStr = gender === 'male' ? 'men' : 'women';
                     const backupUrl = `https://randomuser.me/api/portraits/${genderStr}/${imageId}.jpg`;
                     
-                    const backupImg = new Image();
-                    backupImg.onload = function() {
+                    loadAndCacheImage(backupUrl, avatarElement, () => {
+                        // 成功加载在线备用图像
                         avatarElement.style.backgroundImage = `url('${backupUrl}')`;
                         avatarElement.classList.remove('loading');
                         avatarElement.classList.add('loaded');
-                    };
-                    backupImg.onerror = function() {
+                    }, () => {
                         // 如果在线头像也失败，回退到字母头像
                         avatarElement.style.backgroundImage = 'none';
                         avatarElement.style.backgroundColor = backgroundColor;
                         avatarElement.textContent = name.charAt(0).toUpperCase();
                         avatarElement.classList.remove('loading');
                         avatarElement.classList.add('loaded');
-                    };
-                    backupImg.src = backupUrl;
-                };
-                img.src = avatarPath;
+                    });
+                });
             }
-        }, 100);
+        });
     }
     
-    // 获取当前主题对应的头像风格
-    function getAvatarStyle() {
-        const styles = {
-            'standard': 'avataaars',
-            'fantasy': 'adventurer-neutral',
-            'scifi': 'bottts',
-            'mystery': 'micah',
-            'romance': 'lorelei'
+    // 优化图像加载函数
+    function loadAndCacheImage(url, element, onSuccess, onError) {
+        // 检查缓存中是否有此图像
+        if (imageCache[url]) {
+            console.log("从缓存加载图像:", url);
+            onSuccess();
+            return;
+        }
+        
+        const img = new Image();
+        
+        img.onload = function() {
+            // 缓存成功加载的图像
+            imageCache[url] = true;
+            onSuccess();
         };
-        return styles[currentTheme] || 'avataaars';
+        
+        img.onerror = function() {
+            onError();
+        };
+        
+        img.src = url;
     }
     
-    // 根据角色属性获取头像参数
-    function getAvatarParams() {
-        const params = {};
-        
-        // 设置默认背景色
-        params.backgroundColor = ['transparent'];
-        
-        // 如果没有角色属性，返回默认参数
-        if (!characterAttributes) return params;
-        
-        // 根据角色属性配置参数
-        // 性格影响头像风格
-        if (characterAttributes.personality === 'compassionate') {
-            params.eyes = ['happy'];
-            params.eyebrows = ['raised'];
-            params.mouth = ['smile'];
-        } else if (characterAttributes.personality === 'introverted') {
-            params.eyes = ['default'];
-            params.eyebrows = ['default'];
-            params.mouth = ['serious'];
-        } else if (characterAttributes.personality === 'extroverted') {
-            params.eyes = ['wink'];
-            params.eyebrows = ['raised'];
-            params.mouth = ['smile'];
-        }
-        
-        // 年龄影响头发和穿着
-        if (characterAttributes.age === 'elderly') {
-            params.hairColor = ['gray', 'white'];
-            params.top = ['shortCurly', 'shortWaved'];
-        } else if (characterAttributes.age === 'teenage') {
-            params.top = ['longHair', 'dreads', 'frizzle'];
-        }
-        
-        // 弱点影响表情
-        if (characterAttributes.weakness === 'impatience') {
-            params.eyebrows = ['angry'];
-        } else if (characterAttributes.weakness === 'perfectionism') {
-            params.eyebrows = ['serious'];
-        }
-        
-        // 目标影响风格
-        if (characterAttributes.goal === 'seeking adventure') {
-            params.clothingColor = ['red', 'orange'];
-        } else if (characterAttributes.goal === 'finding love') {
-            params.clothingColor = ['pink', 'red'];
-        }
-        
-        // 强项影响特征
-        if (characterAttributes.strengths.includes('creativity')) {
-            params.accessories = ['round'];
-        } else if (characterAttributes.strengths.includes('intelligence')) {
-            params.accessories = ['prescription01', 'prescription02'];
-        }
-        
-        return params;
-    }
-    
-    // 使用SVG创建头像
-    function createAvatarSVG(style, params, element, name) {
-        // 使用角色名字作为随机种子
-        const seed = name + (characterAttributes ? characterAttributes.personality : '');
-        
-        // 根据选择的风格创建不同SVG
-        let svgContent = '';
-        
-        // 使用本地内嵌SVG模板
-        if (style === 'avataaars') {
-            // 设置随机参数
-            const nameHash = getStringHash(name);
-            const options = {
-                topType: ['NoHair', 'Eyepatch', 'Hat', 'Hijab', 'Turban', 'WinterHat1', 'WinterHat2', 'WinterHat3', 'WinterHat4', 'LongHairBigHair', 'LongHairBob', 'LongHairBun', 'LongHairCurly', 'LongHairCurvy', 'LongHairDreads', 'LongHairFrida', 'LongHairFro', 'LongHairFroBand', 'LongHairNotTooLong', 'LongHairShavedSides', 'LongHairMiaWallace', 'LongHairStraight', 'LongHairStraight2', 'LongHairStraightStrand', 'ShortHairDreads01', 'ShortHairDreads02', 'ShortHairFrizzle', 'ShortHairShaggyMullet', 'ShortHairShortCurly', 'ShortHairShortFlat', 'ShortHairShortRound', 'ShortHairShortWaved', 'ShortHairSides', 'ShortHairTheCaesar', 'ShortHairTheCaesarSidePart'],
-                accessoriesType: ['Blank', 'Kurt', 'Prescription01', 'Prescription02', 'Round', 'Sunglasses', 'Wayfarers'],
-                hairColor: ['Auburn', 'Black', 'Blonde', 'BlondeGolden', 'Brown', 'BrownDark', 'PastelPink', 'Platinum', 'Red', 'SilverGray'],
-                facialHairType: ['Blank', 'BeardMedium', 'BeardLight', 'BeardMajestic', 'MoustacheFancy', 'MoustacheMagnum'],
-                clotheType: ['BlazerShirt', 'BlazerSweater', 'CollarSweater', 'GraphicShirt', 'Hoodie', 'Overall', 'ShirtCrewNeck', 'ShirtScoopNeck', 'ShirtVNeck'],
-                eyeType: ['Close', 'Cry', 'Default', 'Dizzy', 'EyeRoll', 'Happy', 'Hearts', 'Side', 'Squint', 'Surprised', 'Wink', 'WinkWacky'],
-                eyebrowType: ['Angry', 'AngryNatural', 'Default', 'DefaultNatural', 'FlatNatural', 'RaisedExcited', 'RaisedExcitedNatural', 'SadConcerned', 'SadConcernedNatural', 'UnibrowNatural', 'UpDown', 'UpDownNatural'],
-                mouthType: ['Concerned', 'Default', 'Disbelief', 'Eating', 'Grimace', 'Sad', 'ScreamOpen', 'Serious', 'Smile', 'Tongue', 'Twinkle', 'Vomit'],
-                skinColor: ['Tanned', 'Yellow', 'Pale', 'Light', 'Brown', 'DarkBrown', 'Black']
-            };
-            
-            // 应用角色属性覆盖默认选项
-            if (params.top) {
-                options.topType = params.top.map(type => {
-                    // 将我们的简化参数映射到DiceBear的实际参数名
-                    const typeMap = {
-                        'shortCurly': 'ShortHairShortCurly',
-                        'shortWaved': 'ShortHairShortWaved',
-                        'longHair': 'LongHairBigHair',
-                        'dreads': 'LongHairDreads',
-                        'frizzle': 'ShortHairFrizzle'
-                    };
-                    return typeMap[type] || type;
-                });
-            }
-            
-            if (params.accessories) {
-                options.accessoriesType = params.accessories.map(type => {
-                    const typeMap = {
-                        'round': 'Round',
-                        'prescription01': 'Prescription01',
-                        'prescription02': 'Prescription02'
-                    };
-                    return typeMap[type] || type;
-                });
-            }
-            
-            if (params.eyes) {
-                options.eyeType = params.eyes.map(type => {
-                    const typeMap = {
-                        'happy': 'Happy',
-                        'default': 'Default',
-                        'wink': 'Wink'
-                    };
-                    return typeMap[type] || type;
-                });
-            }
-            
-            if (params.eyebrows) {
-                options.eyebrowType = params.eyebrows.map(type => {
-                    const typeMap = {
-                        'angry': 'Angry',
-                        'raised': 'RaisedExcited',
-                        'default': 'Default',
-                        'serious': 'SadConcerned'
-                    };
-                    return typeMap[type] || type;
-                });
-            }
-            
-            if (params.mouth) {
-                options.mouthType = params.mouth.map(type => {
-                    const typeMap = {
-                        'smile': 'Smile',
-                        'serious': 'Serious'
-                    };
-                    return typeMap[type] || type;
-                });
-            }
-            
-            if (params.hairColor) {
-                options.hairColor = params.hairColor.map(color => {
-                    const colorMap = {
-                        'gray': 'SilverGray',
-                        'white': 'Platinum'
-                    };
-                    return colorMap[color] || color;
-                });
-            }
-            
-            if (params.clothingColor) {
-                // 转换为API可接受的颜色格式
-                const colorMap = {
-                    'red': 'Red',
-                    'orange': 'Orange',
-                    'pink': 'Pink'
-                };
+    // 优化进度条更新
+    function updateProgressIndicators(step) {
+        requestAnimationFrame(() => {
+            for (let i = 0; i < progressDots.length; i++) {
+                if (i < step) {
+                    progressDots[i].classList.add('active');
+                } else {
+                    progressDots[i].classList.remove('active');
+                }
                 
-                // clothingColor 在avataaars中没有直接对应，使用SVG过滤器实现
-                // 为简化，我们只使用预定义的颜色
+                // 为点之间的线添加active类
+                if (i < step - 1 && i < progressLines.length) {
+                    progressLines[i].classList.add('active');
+                } else if (i < progressLines.length) {
+                    progressLines[i].classList.remove('active');
+                }
             }
-            
-            // 根据哈希值为每个特征选择一个选项
-            const topType = options.topType[nameHash % options.topType.length];
-            const accessoriesType = options.accessoriesType[nameHash % options.accessoriesType.length];
-            const hairColor = options.hairColor[(nameHash * 3) % options.hairColor.length];
-            const facialHairType = options.facialHairType[(nameHash * 5) % options.facialHairType.length];
-            const clotheType = options.clotheType[(nameHash * 7) % options.clotheType.length];
-            const eyeType = options.eyeType[(nameHash * 11) % options.eyeType.length];
-            const eyebrowType = options.eyebrowType[(nameHash * 13) % options.eyebrowType.length];
-            const mouthType = options.mouthType[(nameHash * 17) % options.mouthType.length];
-            const skinColor = options.skinColor[(nameHash * 19) % options.skinColor.length];
-            
-            // 从官方CDN加载头像
-            const apiUrl = `https://avatars.dicebear.com/api/avataaars/${encodeURIComponent(seed)}.svg?top[]=${topType}&accessories[]=${accessoriesType}&hairColor[]=${hairColor}&facialHair[]=${facialHairType}&clothes[]=${clotheType}&eyes[]=${eyeType}&eyebrows[]=${eyebrowType}&mouth[]=${mouthType}&skin[]=${skinColor}`;
-            
-            // 加载并显示头像
-            fetch(apiUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('头像加载失败');
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    element.style.backgroundImage = `url('${url}')`;
-                    element.textContent = '';
-                    element.classList.remove('loading');
-                    element.classList.add('loaded');
-                })
-                .catch(error => {
-                    console.error('获取头像出错:', error);
-                    // 使用首字母作为备用
-                    element.style.backgroundImage = 'none';
-                    element.style.backgroundColor = backgroundColor;
-                    element.textContent = name.charAt(0).toUpperCase();
-                    element.classList.remove('loading');
-                    element.classList.add('loaded');
-                });
-        }
-        else {
-            // 对于其他风格，使用简化的API调用
-            const apiUrl = `https://avatars.dicebear.com/api/${style}/${encodeURIComponent(seed)}.svg`;
-            
-            fetch(apiUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('头像加载失败');
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    element.style.backgroundImage = `url('${url}')`;
-                    element.textContent = '';
-                    element.classList.remove('loading');
-                    element.classList.add('loaded');
-                })
-                .catch(error => {
-                    console.error('获取头像出错:', error);
-                    // 使用首字母作为备用
-                    element.style.backgroundImage = 'none';
-                    element.style.backgroundColor = backgroundColor;
-                    element.textContent = name.charAt(0).toUpperCase();
-                    element.classList.remove('loading');
-                    element.classList.add('loaded');
-                });
-        }
+        });
     }
 
     // 生成角色属性
     function generateCharacterAttributes(name) {
-        const attributes = {};
-        
-        // 年龄范围
-        const ages = ['young', 'teenage', 'adult', 'middle-aged', 'elderly'];
-        // 性格特点
-        const personalities = ['introverted', 'extroverted', 'cautious', 'adventurous', 'analytical', 
-                             'creative', 'diplomatic', 'assertive', 'compassionate', 'realistic'];
-        // 强项
-        const strengths = ['intelligence', 'physical strength', 'creativity', 'determination', 
-                          'empathy', 'leadership', 'adaptability', 'patience', 'courage', 'vision'];
-        // 弱点
-        const weaknesses = ['self-doubt', 'stubbornness', 'quick temper', 'indecisiveness', 
-                          'overly trusting', 'perfectionism', 'impatience', 'fear of failure', 
-                          'pride', 'reluctance to ask for help'];
-        // 目标
-        const goals = ['seeking knowledge', 'finding love', 'achieving fame', 'gaining power', 
-                      'helping others', 'discovering truth', 'creating something lasting', 
-                      'finding peace', 'seeking adventure', 'obtaining justice'];
-        // 动机
-        const motivations = ['personal growth', 'revenge', 'responsibility', 'curiosity', 
-                            'love for someone', 'redemption', 'ambition', 'honor', 'fear', 'survival'];
-        
-        // 使用名称哈希选择属性
+        // 为角色生成随机属性
         const nameHash = getStringHash(name);
         
-        // 确定性地选择属性
-        attributes.age = ages[nameHash % ages.length];
-        attributes.personality = personalities[(nameHash * 3) % personalities.length];
+        // 从以下选项中随机选择年龄组
+        const ageGroups = ['child', 'teenage', 'adult', 'elderly'];
+        const ageIndex = nameHash % ageGroups.length;
         
-        // 选择两个不同的强项
-        const strengthsArray = [];
-        let firstStrengthIndex = nameHash % strengths.length;
-        strengthsArray.push(strengths[firstStrengthIndex]);
+        // 根据名称的哈希值确定性别
+        const genderIndex = Math.floor(nameHash / 10) % 2;
+        const genders = ['male', 'female'];
         
-        let secondStrengthIndex;
-        do {
-            secondStrengthIndex = (nameHash * 7) % strengths.length;
-        } while(secondStrengthIndex === firstStrengthIndex);
+        // 定义可能的性格特征
+        const personalityTraits = [
+            '内向的', '外向的', '谨慎的', '冒险的', '理性的', 
+            '感性的', '乐观的', '悲观的', '浪漫的', '现实的',
+            '富有创造力的', '善良的', '敏感的', '坚强的', '聪明的'
+        ];
         
-        strengthsArray.push(strengths[secondStrengthIndex]);
-        attributes.strengths = strengthsArray;
+        // 选择2-3个性格特征
+        const traitCount = 2 + (nameHash % 2);
+        const selectedTraits = [];
         
-        // 选择弱点、目标和动机
-        attributes.weakness = weaknesses[(nameHash * 11) % weaknesses.length];
-        attributes.goal = goals[(nameHash * 13) % goals.length];
-        attributes.motivation = motivations[(nameHash * 17) % motivations.length];
+        for (let i = 0; i < traitCount; i++) {
+            const traitIndex = (nameHash + i * 13) % personalityTraits.length;
+            if (!selectedTraits.includes(personalityTraits[traitIndex])) {
+                selectedTraits.push(personalityTraits[traitIndex]);
+            }
+        }
         
-        return attributes;
+        // 将特征连接成字符串
+        const personalityDescription = selectedTraits.join('、');
+        
+        return {
+            age: ageGroups[ageIndex],
+            gender: genders[genderIndex],
+            personality: personalityDescription
+        };
     }
-
-    // 显示角色属性
+    
+    // 显示角色属性卡片
     function displayCharacterAttributes() {
-        const attributesContainer = document.getElementById('characterAttributes');
         if (!attributesContainer) return;
         
-        attributesContainer.classList.remove('hidden');
+        // 优化：创建文档片段减少DOM操作
+        const fragment = document.createDocumentFragment();
         
-        // 创建DOM结构
-        attributesContainer.innerHTML = `
-            <div class="avatar-container">
-                <div class="avatar" id="characterAvatar"></div>
-            </div>
-            <h3>${currentCharacter}'s Attributes</h3>
-            <div class="attribute-group">
-                <div class="attribute">
-                    <span class="attribute-label">Age:</span> 
-                    <span class="attribute-value">${characterAttributes.age}</span>
-                </div>
-                <div class="attribute">
-                    <span class="attribute-label">Personality:</span> 
-                    <span class="attribute-value">${characterAttributes.personality}</span>
-                </div>
-            </div>
-            <div class="attribute-group">
-                <div class="attribute">
-                    <span class="attribute-label">Strengths:</span> 
-                    <span class="attribute-value">${characterAttributes.strengths.join(', ')}</span>
-                </div>
-                <div class="attribute">
-                    <span class="attribute-label">Weakness:</span> 
-                    <span class="attribute-value">${characterAttributes.weakness}</span>
-                </div>
-            </div>
-            <div class="attribute-group">
-                <div class="attribute">
-                    <span class="attribute-label">Goal:</span> 
-                    <span class="attribute-value">${characterAttributes.goal}</span>
-                </div>
-                <div class="attribute">
-                    <span class="attribute-label">Motivation:</span> 
-                    <span class="attribute-value">${characterAttributes.motivation}</span>
-                </div>
-            </div>
-        `;
+        // 创建属性卡片
+        const attributeCard = document.createElement('div');
+        attributeCard.className = 'attribute-card';
         
-        // 生成角色头像 - 先创建DOM，再生成头像
-        generateCharacterAvatar(currentCharacter);
+        // 添加标题
+        const cardTitle = document.createElement('h3');
+        cardTitle.textContent = `${currentCharacter}的属性`;
+        attributeCard.appendChild(cardTitle);
+        
+        // 添加年龄
+        const ageElement = document.createElement('p');
+        const ageLabel = getAgeLabel(characterAttributes.age);
+        ageElement.textContent = `年龄段: ${ageLabel}`;
+        attributeCard.appendChild(ageElement);
+        
+        // 添加性别
+        const genderElement = document.createElement('p');
+        const genderLabel = characterAttributes.gender === 'male' ? '男性' : '女性';
+        genderElement.textContent = `性别: ${genderLabel}`;
+        attributeCard.appendChild(genderElement);
+        
+        // 添加性格
+        const personalityElement = document.createElement('p');
+        personalityElement.textContent = `性格: ${characterAttributes.personality}`;
+        attributeCard.appendChild(personalityElement);
+        
+        // 清空容器并添加新卡片
+        fragment.appendChild(attributeCard);
+        attributesContainer.innerHTML = '';
+        attributesContainer.appendChild(fragment);
     }
-
-    // 计算字符串哈希值
+    
+    // 获取年龄标签
+    function getAgeLabel(ageGroup) {
+        switch(ageGroup) {
+            case 'child': return '儿童';
+            case 'teenage': return '青少年';
+            case 'adult': return '成年';
+            case 'elderly': return '老年';
+            default: return '未知';
+        }
+    }
+    
+    // 计算字符串的哈希值
     function getStringHash(str) {
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
-            hash |= 0; // 转换为32位整数
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // 转换为32bit整数
         }
         return Math.abs(hash);
     }
-
-    // 保存故事函数，独立出来方便调试
+    
+    // 保存故事功能
     function saveStory() {
-        console.log("保存故事函数被调用");
-        console.log("故事完成状态:", storyCompleted);
-        console.log("故事长度:", currentStory.length);
-        
-        if (!storyCompleted || currentStory.length < 4) {
-            alert('请先完成故事！');
+        if (currentStory.length === 0 || !storyCompleted) {
+            alert(translate('completeFirst'));
             return;
         }
         
-        console.log("准备保存故事...");
+        // 创建一个包含所有故事内容的文本
+        const storyText = currentStory.join('\n\n');
+        const fileName = `${currentCharacter}${currentLanguage === 'zh' ? '的故事' : '\'s Story'}.txt`;
         
-        try {
-            // 按钮反馈效果
-            const saveBtn = document.getElementById('saveStoryBtn');
-            if (saveBtn) {
-                saveBtn.classList.add('btn-clicked');
-                setTimeout(() => {
-                    saveBtn.classList.remove('btn-clicked');
-                }, 200);
-            }
-            
-            // 准备故事内容
-            const title = `${currentCharacter}'s Story`;
-            const content = title + '\n\n' + currentStory.join('\n\n');
-            
-            // 简单直接的下载方法
-            const element = document.createElement('a');
-            const file = new Blob([content], {type: 'text/plain'});
-            element.href = URL.createObjectURL(file);
-            element.download = `${currentCharacter}_story.txt`;
-            document.body.appendChild(element);
-            element.click();
-            
-            // 延迟移除元素并释放URL
-            setTimeout(() => {
-                document.body.removeChild(element);
-                URL.revokeObjectURL(element.href);
-                console.log("下载元素已移除");
-            }, 100);
-            
-            console.log("下载触发成功");
-        } catch (error) {
-            console.error("保存故事时出错:", error);
-            
-            // 备用方法：简单警告并复制到剪贴板
-            alert("下载失败，将尝试复制到剪贴板");
-            
-            try {
-                const title = `${currentCharacter}'s Story`;
-                const content = title + '\n\n' + currentStory.join('\n\n');
-                
-                const textArea = document.createElement('textarea');
-                textArea.value = content;
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                
-                const successful = document.execCommand('copy');
-                document.body.removeChild(textArea);
-                
-                if (successful) {
-                    alert("故事已复制到剪贴板！请粘贴并保存。");
-                } else {
-                    alert("无法复制到剪贴板。请手动复制故事文本。");
-                }
-            } catch (clipboardError) {
-                console.error("剪贴板操作失败:", clipboardError);
-                alert("保存功能不可用。请手动复制屏幕上的故事内容。");
-            }
-        }
+        // 创建下载链接
+        const blob = new Blob([storyText], { type: 'text/plain;charset=utf-8' });
+        
+        // 创建下载链接
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }, 100);
+        
+        // 保存成功的反馈
+        alert(translate('storySaved'));
     }
+
+    // 初始化多语言支持
+    initializeLanguage();
 });

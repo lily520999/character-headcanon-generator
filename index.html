@@ -83,21 +83,27 @@
 <body>
     <div class="app-container">
         <header>
-            <h1>Character Headcanon Generator</h1>
-            <p class="subtitle">Create unique character backstories & personalities</p>
+            <h1 data-i18n="title">Character Headcanon Generator</h1>
+            <p class="subtitle" data-i18n="subtitle">Create unique character backstories & personalities</p>
+            
+            <!-- 语言选择器 -->
+            <div class="language-selector">
+                <button class="language-option" data-lang="zh">中文</button>
+                <button class="language-option" data-lang="en">English</button>
+            </div>
         </header>
         
         <main>
             <div class="card">
                 <div class="input-section">
-                    <input type="text" id="characterName" placeholder="Enter character name...">
+                    <input type="text" id="characterName" data-i18n-placeholder="enterName" placeholder="Enter character name...">
                     <div class="theme-selector">
                         <select id="themeSelector">
-                            <option value="standard">Standard</option>
-                            <option value="fantasy">Fantasy</option>
-                            <option value="scifi">Sci-Fi</option>
-                            <option value="mystery">Mystery</option>
-                            <option value="romance">Romance</option>
+                            <option value="standard" data-i18n="standard">Standard</option>
+                            <option value="fantasy" data-i18n="fantasy">Fantasy</option>
+                            <option value="scifi" data-i18n="scifi">Sci-Fi</option>
+                            <option value="mystery" data-i18n="mystery">Mystery</option>
+                            <option value="romance" data-i18n="romance">Romance</option>
                         </select>
                     </div>
                 </div>
@@ -112,7 +118,7 @@
                         </div>
                         
                         <div class="headcanon-container">
-                            <p id="headcanon">Enter a character name and click the button below to start generating your character's headcanon!</p>
+                            <p id="headcanon" data-i18n="instructions">Enter a character name and click the button below to start generating your character's headcanon!</p>
                         </div>
                     </div>
                     
@@ -126,30 +132,30 @@
                             <div class="progress-line"></div>
                             <div class="progress-dot" id="dot4"></div>
                         </div>
-                        <div class="progress-text">Story Progress</div>
+                        <div class="progress-text" data-i18n="storyProgress">Story Progress</div>
                     </div>
                 </div>
                 
                 <div class="actions">
-                    <button id="generateBtn" class="btn primary"><i class="fas fa-magic"></i> Generate</button>
-                    <button id="saveStoryBtn" class="btn secondary hidden"><i class="fas fa-save"></i> Save Story</button>
+                    <button id="generateBtn" class="btn primary" data-i18n="generate"><i class="fas fa-magic"></i> Generate</button>
+                    <button id="saveStoryBtn" class="btn secondary hidden" data-i18n="save"><i class="fas fa-save"></i> Save Story</button>
                 </div>
             </div>
             
             <div class="instructions">
-                <h3>How it works</h3>
+                <h3 data-i18n="howItWorks">How it works</h3>
                 <ol>
-                    <li>Enter your character's name</li>
-                    <li>Select a story theme</li>
-                    <li>Click "Generate" to start the story</li>
-                    <li>Keep clicking to continue the narrative</li>
-                    <li>Save your completed story</li>
+                    <li data-i18n="step1">Enter your character's name</li>
+                    <li data-i18n="step2">Select a story theme</li>
+                    <li data-i18n="step3">Click "Generate" to start the story</li>
+                    <li data-i18n="step4">Keep clicking to continue the narrative</li>
+                    <li data-i18n="step5">Save your completed story</li>
                 </ol>
             </div>
         </main>
         
         <footer>
-            <p>Created for character development & creative writing</p>
+            <p data-i18n="footer">Created for character development & creative writing</p>
         </footer>
     </div>
     
