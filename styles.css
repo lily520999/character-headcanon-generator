@@ -51,49 +51,8 @@ body.light-theme {
 }
 
 /* 语言选择器样式 */
-.language-selector {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-    margin: 10px 0;
-}
-
-.language-option {
-    padding: 5px 10px;
-    border: 1px solid var(--card-border);
-    background: var(--card-bg);
-    color: var(--text-primary);
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 5px var(--shadow-color);
-}
-
-.language-option:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px var(--shadow-color);
-}
-
-.language-option.current {
-    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    border-color: transparent;
-}
-
-.language-loading {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    padding: 15px 30px;
-    box-shadow: 0 8px 25px var(--shadow-color);
-    z-index: 1000;
-    backdrop-filter: blur(8px);
+.language-selector, .language-option, .language-loading {
+    display: none;
 }
 
 body {

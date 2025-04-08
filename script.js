@@ -8,11 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const themeSelector = document.getElementById('themeSelector');
     const attributesContainer = document.getElementById('characterAttributes');
     
-    // 多语言支持
-    let currentLanguage = 'en'; // 默认语言为英文
-    const translations = {}; // 存储语言翻译
-    const supportedLanguages = ['zh', 'en']; // 仅支持中英文
-    
     // 故事进度点
     const progressDots = [
         document.getElementById('dot1'),
@@ -50,168 +45,6 @@ document.addEventListener('DOMContentLoaded', function() {
     requestAnimationFrame(() => {
         characterNameInput.focus();
     });
-    
-    // 加载语言文件
-    async function loadLanguage(lang) {
-        if (!supportedLanguages.includes(lang)) {
-            console.warn(`不支持的语言: ${lang}, 使用默认语言`);
-            lang = 'en';
-        }
-        
-        if (translations[lang]) return true; // 已加载
-        
-        try {
-            const response = await fetch(`langs/${lang}.json`);
-            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-            translations[lang] = await response.json();
-            return true;
-        } catch (error) {
-            console.error(`无法加载${lang}语言文件:`, error);
-            // 如果加载失败且不是默认语言，尝试使用英文作为备用
-            if (lang !== 'en') {
-                return await loadLanguage('en');
-            }
-            return false;
-        }
-    }
-    
-    // 翻译函数，支持参数替换
-    function translate(key, params = {}) {
-        if (!translations[currentLanguage]) {
-            return key; // 语言文件尚未加载
-        }
-        
-        let text = translations[currentLanguage][key] || translations['en'][key] || key;
-        
-        // 替换参数，例如 {name} 替换为实际名称
-        for (const [param, value] of Object.entries(params)) {
-            text = text.replace(new RegExp(`{${param}}`, 'g'), value);
-        }
-        
-        return text;
-    }
-    
-    // 更新页面上的所有文本
-    function updatePageLanguage() {
-        // 更新普通文本元素
-        document.querySelectorAll('[data-i18n]').forEach(element => {
-            const key = element.getAttribute('data-i18n');
-            const params = {};
-            
-            // 检查是否需要参数替换
-            if (key === 'attributesTitle' && currentCharacter) {
-                params.name = currentCharacter;
-            }
-            
-            element.textContent = translate(key, params);
-        });
-        
-        // 更新输入框占位符
-        document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
-            const key = element.getAttribute('data-i18n-placeholder');
-            element.placeholder = translate(key);
-        });
-        
-        // 更新下拉菜单选项
-        const themeOptions = themeSelector.querySelectorAll('option');
-        themeOptions.forEach(option => {
-            const key = option.getAttribute('data-i18n');
-            if (key) {
-                option.textContent = translate(key);
-            }
-        });
-        
-        // 更新语言选择器状态
-        document.querySelectorAll('.language-option').forEach(option => {
-            const optionLang = option.getAttribute('data-lang');
-            if (supportedLanguages.includes(optionLang)) {
-                if (optionLang === currentLanguage) {
-                    option.classList.add('current');
-                } else {
-                    option.classList.remove('current');
-                }
-                option.style.display = 'inline-block'; // 显示支持的语言
-            } else {
-                option.style.display = 'none'; // 隐藏不支持的语言
-            }
-        });
-        
-        // 如果存在角色，更新属性显示
-        if (currentCharacter && characterAttributes) {
-            displayCharacterAttributes();
-        }
-        
-        // 如果有现有故事，更新故事内容
-        if (currentStory.length > 0) {
-            displayCurrentStory();
-        }
-    }
-    
-    // 切换语言
-    async function switchLanguage(lang) {
-        if (!supportedLanguages.includes(lang)) return;
-        
-        // 显示加载中指示器
-        const indicator = document.createElement('div');
-        indicator.className = 'language-loading';
-        indicator.textContent = '加载中...';
-        document.body.appendChild(indicator);
-        
-        const success = await loadLanguage(lang);
-        
-        if (success) {
-            currentLanguage = lang;
-            document.documentElement.setAttribute('lang', lang);
-            localStorage.setItem('preferredLanguage', lang);
-            updatePageLanguage();
-        }
-        
-        // 移除加载指示器
-        document.body.removeChild(indicator);
-    }
-    
-    // 初始化语言设置
-    async function initializeLanguage() {
-        // 检测用户首选语言
-        const savedLanguage = localStorage.getItem('preferredLanguage');
-        const browserLang = navigator.language.split('-')[0];
-        let initialLang = savedLanguage || browserLang || 'en';
-        
-        // 确保语言在支持列表中
-        if (!supportedLanguages.includes(initialLang)) {
-            initialLang = 'en'; // 默认英文
-        }
-        
-        // 加载默认语言和用户语言
-        await loadLanguage('en'); // 英文作为备用
-        if (initialLang !== 'en') {
-            await loadLanguage(initialLang);
-        }
-        
-        currentLanguage = initialLang;
-        document.documentElement.setAttribute('lang', initialLang);
-        
-        // 添加语言选择器事件监听
-        document.querySelectorAll('.language-option').forEach(option => {
-            const lang = option.getAttribute('data-lang');
-            if (supportedLanguages.includes(lang)) {
-                option.addEventListener('click', () => {
-                    if (lang !== currentLanguage) {
-                        switchLanguage(lang);
-                    }
-                });
-                
-                // 标记当前语言
-                if (lang === currentLanguage) {
-                    option.classList.add('current');
-                }
-            } else {
-                option.style.display = 'none'; // 隐藏不支持的语言
-            }
-        });
-        
-        updatePageLanguage();
-    }
 
     // 角色设定列表（英文版）
     const headcanons = [
@@ -280,24 +113,6 @@ document.addEventListener('DOMContentLoaded', function() {
         "That night, NAME went to sleep knowing that tomorrow would bring new possibilities."
     ];
 
-    // 显示当前故事（用于语言切换后）
-    function displayCurrentStory() {
-        if (!headcanonElement || currentStory.length === 0) return;
-        
-        // 优化：创建文档片段减少DOM操作次数
-        const fragment = document.createDocumentFragment();
-        
-        currentStory.forEach(storyItem => {
-            const p = document.createElement('p');
-            p.textContent = storyItem;
-            fragment.appendChild(p);
-        });
-        
-        // 一次性更新DOM
-        headcanonElement.innerHTML = '';
-        headcanonElement.appendChild(fragment);
-    }
-
     // 按键事件监听
     characterNameInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -342,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const name = characterNameInput.value.trim();
         
         if (name === '') {
-            headcanonElement.textContent = translate('pleaseEnterName');
+            headcanonElement.textContent = 'Please enter a character name!';
             headcanonContainer.classList.add('shake');
             setTimeout(() => {
                 headcanonContainer.classList.remove('shake');
@@ -539,22 +354,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 生成角色属性
     function generateCharacterAttributes(name) {
-        // 为角色生成随机属性
+        // 基本属性生成
         const nameHash = getStringHash(name);
         
-        // 从以下选项中随机选择年龄组
+        // 年龄组
         const ageGroups = ['child', 'teenage', 'adult', 'elderly'];
         const ageIndex = nameHash % ageGroups.length;
         
-        // 根据名称的哈希值确定性别
-        const genderIndex = Math.floor(nameHash / 10) % 2;
+        // 性别 - 基于名称哈希
         const genders = ['male', 'female'];
+        const genderIndex = Math.floor(nameHash / 10) % 2;
         
-        // 定义可能的性格特征
+        // 人格特质 - 英文版
         const personalityTraits = [
-            '内向的', '外向的', '谨慎的', '冒险的', '理性的', 
-            '感性的', '乐观的', '悲观的', '浪漫的', '现实的',
-            '富有创造力的', '善良的', '敏感的', '坚强的', '聪明的'
+            'introverted', 'extroverted', 'cautious', 'adventurous', 'analytical',
+            'creative', 'diplomatic', 'assertive', 'compassionate', 'realistic',
+            'imaginative', 'kind', 'sensitive', 'strong-willed', 'intelligent'
         ];
         
         // 选择2-3个性格特征
@@ -569,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // 将特征连接成字符串
-        const personalityDescription = selectedTraits.join('、');
+        const personalityDescription = selectedTraits.join(', ');
         
         return {
             age: ageGroups[ageIndex],
@@ -582,50 +397,33 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayCharacterAttributes() {
         if (!attributesContainer) return;
         
-        // 优化：创建文档片段减少DOM操作
+        // 创建文档片段减少DOM操作
         const fragment = document.createDocumentFragment();
         
-        // 创建属性卡片
-        const attributeCard = document.createElement('div');
-        attributeCard.className = 'attribute-card';
+        // 显示角色卡片
+        attributesContainer.classList.remove('hidden');
         
-        // 添加标题
-        const cardTitle = document.createElement('h3');
-        cardTitle.textContent = `${currentCharacter}的属性`;
-        attributeCard.appendChild(cardTitle);
-        
-        // 添加年龄
-        const ageElement = document.createElement('p');
-        const ageLabel = getAgeLabel(characterAttributes.age);
-        ageElement.textContent = `年龄段: ${ageLabel}`;
-        attributeCard.appendChild(ageElement);
-        
-        // 添加性别
-        const genderElement = document.createElement('p');
-        const genderLabel = characterAttributes.gender === 'male' ? '男性' : '女性';
-        genderElement.textContent = `性别: ${genderLabel}`;
-        attributeCard.appendChild(genderElement);
-        
-        // 添加性格
-        const personalityElement = document.createElement('p');
-        personalityElement.textContent = `性格: ${characterAttributes.personality}`;
-        attributeCard.appendChild(personalityElement);
-        
-        // 清空容器并添加新卡片
-        fragment.appendChild(attributeCard);
-        attributesContainer.innerHTML = '';
-        attributesContainer.appendChild(fragment);
-    }
-    
-    // 获取年龄标签
-    function getAgeLabel(ageGroup) {
-        switch(ageGroup) {
-            case 'child': return '儿童';
-            case 'teenage': return '青少年';
-            case 'adult': return '成年';
-            case 'elderly': return '老年';
-            default: return '未知';
-        }
+        // 创建DOM结构
+        attributesContainer.innerHTML = `
+            <div class="avatar-container">
+                <div class="avatar" id="characterAvatar"></div>
+            </div>
+            <h3>${currentCharacter}'s Attributes</h3>
+            <div class="attribute-group">
+                <div class="attribute">
+                    <span class="attribute-label">Age:</span> 
+                    <span class="attribute-value">${characterAttributes.age}</span>
+                </div>
+                <div class="attribute">
+                    <span class="attribute-label">Gender:</span> 
+                    <span class="attribute-value">${characterAttributes.gender}</span>
+                </div>
+                <div class="attribute">
+                    <span class="attribute-label">Personality:</span> 
+                    <span class="attribute-value">${characterAttributes.personality}</span>
+                </div>
+            </div>
+        `;
     }
     
     // 计算字符串的哈希值
@@ -642,13 +440,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // 保存故事功能
     function saveStory() {
         if (currentStory.length === 0 || !storyCompleted) {
-            alert(translate('completeFirst'));
+            alert('Please complete the story first!');
             return;
         }
         
         // 创建一个包含所有故事内容的文本
         const storyText = currentStory.join('\n\n');
-        const fileName = `${currentCharacter}${currentLanguage === 'zh' ? '的故事' : '\'s Story'}.txt`;
+        const fileName = `${currentCharacter}'s Story.txt`;
         
         // 创建下载链接
         const blob = new Blob([storyText], { type: 'text/plain;charset=utf-8' });
@@ -666,9 +464,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 100);
         
         // 保存成功的反馈
-        alert(translate('storySaved'));
+        alert('Story saved successfully!');
     }
-
-    // 初始化多语言支持
-    initializeLanguage();
 });
