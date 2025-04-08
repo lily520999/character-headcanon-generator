@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const attributesContainer = document.getElementById('characterAttributes');
     
     // 多语言支持
-    let currentLanguage = 'zh'; // 默认语言为中文
+    let currentLanguage = 'en'; // 默认语言为英文
     const translations = {}; // 存储语言翻译
     const supportedLanguages = ['zh', 'en']; // 仅支持中英文
     
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadLanguage(lang) {
         if (!supportedLanguages.includes(lang)) {
             console.warn(`不支持的语言: ${lang}, 使用默认语言`);
-            lang = 'zh';
+            lang = 'en';
         }
         
         if (translations[lang]) return true; // 已加载
@@ -67,9 +67,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return true;
         } catch (error) {
             console.error(`无法加载${lang}语言文件:`, error);
-            // 如果加载失败且不是默认语言，尝试使用中文作为备用
-            if (lang !== 'zh') {
-                return await loadLanguage('zh');
+            // 如果加载失败且不是默认语言，尝试使用英文作为备用
+            if (lang !== 'en') {
+                return await loadLanguage('en');
             }
             return false;
         }
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return key; // 语言文件尚未加载
         }
         
-        let text = translations[currentLanguage][key] || key;
+        let text = translations[currentLanguage][key] || translations['en'][key] || key;
         
         // 替换参数，例如 {name} 替换为实际名称
         for (const [param, value] of Object.entries(params)) {
@@ -175,16 +175,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // 检测用户首选语言
         const savedLanguage = localStorage.getItem('preferredLanguage');
         const browserLang = navigator.language.split('-')[0];
-        let initialLang = savedLanguage || browserLang || 'zh';
+        let initialLang = savedLanguage || browserLang || 'en';
         
         // 确保语言在支持列表中
         if (!supportedLanguages.includes(initialLang)) {
-            initialLang = 'zh'; // 默认中文
+            initialLang = 'en'; // 默认英文
         }
         
         // 加载默认语言和用户语言
-        await loadLanguage('zh'); // 中文作为备用
-        if (initialLang !== 'zh') {
+        await loadLanguage('en'); // 英文作为备用
+        if (initialLang !== 'en') {
             await loadLanguage(initialLang);
         }
         
